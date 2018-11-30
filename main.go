@@ -147,6 +147,7 @@ func (s *Server) Auth(c *gin.Context) {
 		return
 	}
 }
+
 func (s *Server) CreateAccount(c *gin.Context) {
 	var acc bankaccount.Account
 	err := c.ShouldBindJSON(&acc)
@@ -168,6 +169,7 @@ func (s *Server) CreateAccount(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, acc)
 }
+
 func (s *Server) GetAccountByUserID(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	fmt.Println(id)
@@ -179,6 +181,7 @@ func (s *Server) GetAccountByUserID(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, acc)
 }
+
 func (s *Server) AccountWithdraw(c *gin.Context) {
 	h := map[string]int{}
 	if err := c.ShouldBindJSON(&h); err != nil {
@@ -196,6 +199,7 @@ func (s *Server) AccountWithdraw(c *gin.Context) {
 	newacc,err := s.accountApiService.UpdateAccount(int(acc.ID),acc)
 	c.JSON(http.StatusOK, newacc)
 }
+
 func (s *Server) AccountDeposit(c *gin.Context) {
 	h := map[string]int{}
 	if err := c.ShouldBindJSON(&h); err != nil {
@@ -213,6 +217,7 @@ func (s *Server) AccountDeposit(c *gin.Context) {
 	newacc,err := s.accountApiService.UpdateAccount(int(acc.ID),acc)
 	c.JSON(http.StatusOK, newacc)
 }
+
 func (s *Server) DeleteAccount(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	if err := s.accountApiService.DeleteAccount(id); err != nil {
@@ -220,6 +225,33 @@ func (s *Server) DeleteAccount(c *gin.Context) {
 		return
 	}
 }
+
+func (s *Server) Transfer(c *gin.Context) {
+	h := map[string]int{}
+	if err := c.ShouldBindJSON(&h); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, err)
+		return
+	}
+	accfrom, err := s.accountApiService.GetAccountByID(h["from"])
+	if err != nil {
+		fmt.Println(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+		return
+	}
+	accto, err := s.accountApiService.GetAccountByID(h["to"])
+	if err != nil {
+		fmt.Println(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+		return
+	}
+	accfrom.Balance = accfrom.Balance - int64(h["amount"])
+	accto.Balance = accto.Balance + int64(h["amount"])    
+	newaccfrom,err := s.accountApiService.UpdateAccount(int(accfrom.ID),accfrom)
+	newaccto,err := s.accountApiService.UpdateAccount(int(accto.ID),accto)
+	c.JSON(http.StatusOK, []*bankaccount.Account{newaccfrom, newaccto})
+}
+
+
 func setupRoute(s *Server) *gin.Engine {
 	r := gin.Default()
 	// accs := r.Group("/accs")
@@ -245,6 +277,7 @@ func setupRoute(s *Server) *gin.Engine {
 
 	return r
 }
+
 func main() {
 	// db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	db, err := sql.Open("postgres", "postgres://suyhzbwz:zMMdsNufLoJGLzdVphQt9qb6pwjI02Wu@elmer.db.elephantsql.com:5432/suyhzbwz")
