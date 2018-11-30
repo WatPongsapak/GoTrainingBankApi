@@ -26,6 +26,7 @@ type UserApiService interface {
 type AccountApiService interface {
 	AllAccounts() ([]bankaccount.Account, error)
 	CreateAccount(acc *bankaccount.Account) error
+	GetAccountByUserID(id int) ([]bankaccount.Account, error)
 	GetAccountByID(id int) (*bankaccount.Account, error)
 	DeleteAccount(id int) error
 	UpdateAccount(id int, acc *bankaccount.Account) (*bankaccount.Account, error)
@@ -65,6 +66,8 @@ func (s *Server) CreateUser(c *gin.Context) {
 		return
 	}
 
+	fmt.Println(user)
+
 	if err := s.userApiService.CreateUser(&user); err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		return
@@ -75,12 +78,12 @@ func (s *Server) CreateUser(c *gin.Context) {
 
 func (s *Server) GetUserByID(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	todo, err := s.userApiService.GetUserByID(id)
+	acc, err := s.userApiService.GetUserByID(id)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, todo)
+	c.JSON(http.StatusOK, acc)
 }
 
 func (s *Server) DeleteUser(c *gin.Context) {
@@ -97,12 +100,21 @@ func (s *Server) UpdateUser(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, err)
 		return
 	}
+	fmt.Println(h)
 	id, _ := strconv.Atoi(c.Param("id"))
-	userinput := &user.User{
-		ID        :int64(id),
-		FirstName :h["firstname"],
-		LastName  :h["lastname"],
+	userinput,err := s.userApiService.GetUserByID(id)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+		return
 	}
+	fmt.Println(userinput)
+	if h["firstname"] != ""{
+		userinput.FirstName = h["firstname"]
+	}
+	if h["lastname"] != ""{
+		userinput.LastName = h["lastname"]
+	}
+	fmt.Println(userinput)
 	user, err := s.userApiService.UpdateUser(id, userinput)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
@@ -136,28 +148,85 @@ func (s *Server) AuthTodo(c *gin.Context) {
 	}
 }
 func (s *Server) CreateAccount(c *gin.Context) {
+	var acc bankaccount.Account
+	err := c.ShouldBindJSON(&acc)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"object":  "error",
+			"message": fmt.Sprintf("json: wrong params: %s", err),
+		})
+		return
+	}
+	id, _ := strconv.Atoi(c.Param("id"))
+	acc.UserID = int64(id)
+	fmt.Println(acc)
 
+	if err := s.accountApiService.CreateAccount(&acc); err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, acc)
 }
-func (s *Server) GetAccountByID(c *gin.Context) {
-	
+func (s *Server) GetAccountByUserID(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	fmt.Println(id)
+	acc, err := s.accountApiService.GetAccountByUserID(id)
+	if err != nil {
+		fmt.Println(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusOK, acc)
 }
 func (s *Server) AccountWithdraw(c *gin.Context) {
-	
+	h := map[string]int{}
+	if err := c.ShouldBindJSON(&h); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, err)
+		return
+	}
+	id, _ := strconv.Atoi(c.Param("id"))
+	acc, err := s.accountApiService.GetAccountByID(id)
+	if err != nil {
+		fmt.Println(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+		return
+	}
+	acc.Balance = acc.Balance - int64(h["amount"]) 
+	newacc,err := s.accountApiService.UpdateAccount(int(acc.ID),acc)
+	c.JSON(http.StatusOK, newacc)
 }
 func (s *Server) AccountDeposit(c *gin.Context) {
-	
+	h := map[string]int{}
+	if err := c.ShouldBindJSON(&h); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, err)
+		return
+	}
+	id, _ := strconv.Atoi(c.Param("id"))
+	acc, err := s.accountApiService.GetAccountByID(id)
+	if err != nil {
+		fmt.Println(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+		return
+	}
+	acc.Balance = acc.Balance + int64(h["amount"])  
+	newacc,err := s.accountApiService.UpdateAccount(int(acc.ID),acc)
+	c.JSON(http.StatusOK, newacc)
 }
 func (s *Server) DeleteAccount(c *gin.Context) {
-	
+	id, _ := strconv.Atoi(c.Param("id"))
+	if err := s.accountApiService.DeleteAccount(id); err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err)
+		return
+	}
 }
 func setupRoute(s *Server) *gin.Engine {
 	r := gin.Default()
-	// todos := r.Group("/todos")
-	// admin := r.Group("/admin")
-
-	// admin.Use(gin.BasicAuth(gin.Accounts{
-	// 	"admin": "1234",
-	// }))
+	// accs := r.Group("/accs")
+	admin := r.Group("/admin")
+	admin.Use(gin.BasicAuth(gin.Accounts{
+		"admin": "1234",
+	}))
 	// r.Use(s.AuthTodo)
 	r.GET("/users", s.AllUsers)
 	r.POST("/users", s.CreateUser)
@@ -166,7 +235,7 @@ func setupRoute(s *Server) *gin.Engine {
 	r.DELETE("/users/:id", s.DeleteUser)
 
 	r.POST("/users/:id/bankAccounts", s.CreateAccount)
-	r.GET("/users/:id/bankAccounts", s.GetAccountByID)
+	r.GET("/users/:id/bankAccounts", s.GetAccountByUserID)
 	r.PUT("/bankAccounts/:id/withdraw", s.AccountWithdraw)
 	r.PUT("/bankAccounts/:id/deposit", s.AccountDeposit)
 	r.DELETE("/bankAccounts/:id", s.DeleteAccount)

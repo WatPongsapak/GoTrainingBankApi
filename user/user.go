@@ -34,7 +34,7 @@ func (s *UserApiServiceImp) AllUsers() ([]User, error) {
 }
 
 func (s *UserApiServiceImp) CreateUser(user *User) error {
-	row := s.DB.QueryRow("INSERT INTO users (first_name, last_name) values ($1, $2, $3) RETURNING id", user.FirstName, user.LastName)
+	row := s.DB.QueryRow("INSERT INTO users (first_name, last_name) values ($1, $2) RETURNING id", user.FirstName, user.LastName)
 	if err := row.Scan(&user.ID); err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (s *UserApiServiceImp) DeleteUser(id int) error {
 }
 
 func (s *UserApiServiceImp) UpdateUser(id int, user *User) (*User, error) {
-	stmt := "UPDATE users SET first_name = $2,last_name = $2 WHERE id = $1"
+	stmt := "UPDATE users SET first_name = $2, last_name = $3 WHERE id = $1"
 	_, err := s.DB.Exec(stmt, id, user.FirstName, user.LastName)
 	if err != nil {
 		return nil, err
