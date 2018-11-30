@@ -224,21 +224,24 @@ func setupRoute(s *Server) *gin.Engine {
 	r := gin.Default()
 	// accs := r.Group("/accs")
 	admin := r.Group("/admin")
+	user := r.Group("/users")
+	account := r.Group("/bankAccounts")
 	admin.Use(gin.BasicAuth(gin.Accounts{
 		"admin": "1234",
 	}))
-	// r.Use(s.AuthTodo)
-	r.GET("/users", s.AllUsers)
-	r.POST("/users", s.CreateUser)
-	r.GET("/users/:id", s.GetUserByID)
-	r.PUT("/users/:id", s.UpdateUser)
-	r.DELETE("/users/:id", s.DeleteUser)
-
-	r.POST("/users/:id/bankAccounts", s.CreateAccount)
-	r.GET("/users/:id/bankAccounts", s.GetAccountByUserID)
-	r.PUT("/bankAccounts/:id/withdraw", s.AccountWithdraw)
-	r.PUT("/bankAccounts/:id/deposit", s.AccountDeposit)
-	r.DELETE("/bankAccounts/:id", s.DeleteAccount)
+	admin.POST("/secrets", s.CreateSecret)
+	user.Use(s.AuthTodo)
+	user.Use(s.AuthTodo)
+	user.GET("", s.AllUsers)
+	user.POST("", s.CreateUser)
+	user.GET("/:id", s.GetUserByID)
+	user.PUT("/:id", s.UpdateUser)
+	user.DELETE("/:id", s.DeleteUser)
+	user.POST("/:id/bankAccounts", s.CreateAccount)
+	user.GET("/:id/bankAccounts", s.GetAccountByUserID)
+	account.PUT("/:id/withdraw", s.AccountWithdraw)
+	account.PUT("/:id/deposit", s.AccountDeposit)
+	account.DELETE("/:id", s.DeleteAccount)
 
 	return r
 }
