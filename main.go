@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"bankapi/user"
 	"bankapi/secret"
+	"bankapi/bankaccount"
 	"database/sql"
 	"fmt"
 	"log"
@@ -22,6 +23,13 @@ type UserApiService interface {
 	UpdateUser(id int, user *user.User) (*user.User, error)
 }
 
+type AccountApiService interface {
+	AllAccounts() ([]bankaccount.Account, error)
+	CreateAccount(acc *bankaccount.Account) error
+	GetAccountByID(id int) (*bankaccount.Account, error)
+	DeleteAccount(id int) error
+	UpdateAccount(id int, acc *bankaccount.Account) (*bankaccount.Account, error)
+}
 
 type SecretService interface {
 	Insert(s *secret.Secret) error
@@ -31,6 +39,7 @@ type SecretService interface {
 type Server struct {
 	userApiService UserApiService
 	secretService  SecretService
+	accountApiService  AccountApiService
 }
 
 func (s *Server) AllUsers(c *gin.Context) {
@@ -126,7 +135,21 @@ func (s *Server) AuthTodo(c *gin.Context) {
 		return
 	}
 }
+func (s *Server) CreateAccount(c *gin.Context) {
 
+}
+func (s *Server) GetAccountByID(c *gin.Context) {
+	
+}
+func (s *Server) AccountWithdraw(c *gin.Context) {
+	
+}
+func (s *Server) AccountDeposit(c *gin.Context) {
+	
+}
+func (s *Server) DeleteAccount(c *gin.Context) {
+	
+}
 func setupRoute(s *Server) *gin.Engine {
 	r := gin.Default()
 	// todos := r.Group("/todos")
@@ -142,26 +165,30 @@ func setupRoute(s *Server) *gin.Engine {
 	r.PUT("/users/:id", s.UpdateUser)
 	r.DELETE("/users/:id", s.DeleteUser)
 
-	// r.POST("/users/:id/bankAccounts", s.Create)
-	// r.GET("/users/:id/bankAccounts", s.GetByID)
-	// r.PUT("/users/:id/bankAccounts", s.GetByID)
-	// r.PUT("/users/:id/bankAccounts", s.GetByID)
-	// r.DELETE("/users/:id/bankAccounts", s.GetByID)
+	r.POST("/users/:id/bankAccounts", s.CreateAccount)
+	r.GET("/users/:id/bankAccounts", s.GetAccountByID)
+	r.PUT("/bankAccounts/:id/withdraw", s.AccountWithdraw)
+	r.PUT("/bankAccounts/:id/deposit", s.AccountDeposit)
+	r.DELETE("/bankAccounts/:id", s.DeleteAccount)
 
 	return r
 }
 func main() {
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	// db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("postgres", "postgres://suyhzbwz:zMMdsNufLoJGLzdVphQt9qb6pwjI02Wu@elmer.db.elephantsql.com:5432/suyhzbwz")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	s := &Server{
 		userApiService: &user.UserApiServiceImp{
-			db: db,
+			DB: db,
 		},
 		secretService: &secret.SecretServiceImp{
-			db: db,
+			DB: db,
+		},
+		accountApiService: &bankaccount.AccountApiServiceImp{
+			DB: db,
 		},
 	}
 

@@ -12,11 +12,11 @@ type Secret struct {
 }
 
 type SecretServiceImp struct {
-	db *sql.DB
+	DB *sql.DB
 }
 
 func (s *SecretServiceImp) Insert(secret *Secret) error {
-	row := s.db.QueryRow("INSERT INTO secrets (key) values ($1) RETURNING id", secret.Key)
+	row := s.DB.QueryRow("INSERT INTO secrets (key) values ($1) RETURNING id", secret.Key)
 
 	if err := row.Scan(&secret.ID); err != nil {
 		return err
@@ -25,7 +25,7 @@ func (s *SecretServiceImp) Insert(secret *Secret) error {
 }
 
 func (s *SecretServiceImp) FindSecretKey(secret *Secret) error {
-	_, err := s.db.Query("SELECT key FROM secrets WHERE key=$1", secret.Key)
+	_, err := s.DB.Query("SELECT key FROM secrets WHERE key=$1", secret.Key)
 	if err != nil {
 		return err
 	}

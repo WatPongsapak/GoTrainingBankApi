@@ -13,11 +13,11 @@ type User struct {
 }
 
 type UserApiServiceImp struct {
-	db *sql.DB
+	DB *sql.DB
 }
 
 func (s *UserApiServiceImp) AllUsers() ([]User, error) {
-	rows, err := s.db.Query("SELECT id, first_name, last_name FROM users")
+	rows, err := s.DB.Query("SELECT id, first_name, last_name FROM users")
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (s *UserApiServiceImp) AllUsers() ([]User, error) {
 }
 
 func (s *UserApiServiceImp) CreateUser(user *User) error {
-	row := s.db.QueryRow("INSERT INTO users (first_name, last_name) values ($1, $2, $3) RETURNING id", user.FirstName, user.LastName)
+	row := s.DB.QueryRow("INSERT INTO users (first_name, last_name) values ($1, $2, $3) RETURNING id", user.FirstName, user.LastName)
 	if err := row.Scan(&user.ID); err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (s *UserApiServiceImp) CreateUser(user *User) error {
 
 func (s *UserApiServiceImp) GetUserByID(id int) (*User, error) {
 	stmt := "SELECT id, first_name, last_name FROM users WHERE id = $1"
-	row := s.db.QueryRow(stmt, id)
+	row := s.DB.QueryRow(stmt, id)
 	var user User
 	err := row.Scan(&user.ID, &user.FirstName, &user.LastName)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *UserApiServiceImp) GetUserByID(id int) (*User, error) {
 
 func (s *UserApiServiceImp) DeleteUser(id int) error {
 	stmt := "DELETE FROM users WHERE id = $1"
-	_, err := s.db.Exec(stmt, id)
+	_, err := s.DB.Exec(stmt, id)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (s *UserApiServiceImp) DeleteUser(id int) error {
 
 func (s *UserApiServiceImp) UpdateUser(id int, user *User) (*User, error) {
 	stmt := "UPDATE users SET first_name = $2,last_name = $2 WHERE id = $1"
-	_, err := s.db.Exec(stmt, id, user.FirstName, user.LastName)
+	_, err := s.DB.Exec(stmt, id, user.FirstName, user.LastName)
 	if err != nil {
 		return nil, err
 	}
