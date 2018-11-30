@@ -136,7 +136,7 @@ func (s *Server) CreateSecret(c *gin.Context) {
 	c.JSON(http.StatusCreated, secret)
 }
 
-func (s *Server) AuthTodo(c *gin.Context) {
+func (s *Server) Auth(c *gin.Context) {
 	var secret secret.Secret
 	if err := c.ShouldBindJSON(&secret); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, err)
@@ -230,8 +230,8 @@ func setupRoute(s *Server) *gin.Engine {
 		"admin": "1234",
 	}))
 	admin.POST("/secrets", s.CreateSecret)
-	user.Use(s.AuthTodo)
-	user.Use(s.AuthTodo)
+	user.Use(s.Auth)
+	account.Use(s.Auth)
 	user.GET("", s.AllUsers)
 	user.POST("", s.CreateUser)
 	user.GET("/:id", s.GetUserByID)
